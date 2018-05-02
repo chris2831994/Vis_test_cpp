@@ -6,28 +6,22 @@
 #include <cmath>
 #include <cairomm/context.h>
 #include <glibmm/main.h>
-#include "VisualizerArea.h"
+#include "LineVisualizer.h"
 #include <random>
 
-VisualizerArea::VisualizerArea(int samples) : samples(samples)
+LineVisualizer::LineVisualizer(int samples) : samples(samples)
 {
-    Glib::signal_timeout().connect(sigc::mem_fun(*this, &VisualizerArea::on_timeout), 1);
+    Glib::signal_timeout().connect(sigc::mem_fun(*this, &LineVisualizer::on_timeout), 1);
+
+    processor = new FifoProcessor(samples);
 }
 
-VisualizerArea::~VisualizerArea()
+LineVisualizer::~LineVisualizer()
 {
-
+    delete(this->processor);
 }
 
-void VisualizerArea::setDisplayBuffer(uint16_t *buf) {
-    this->displayBuffer = buf;
-}
-
-void VisualizerArea::update(){
-
-}
-
-bool VisualizerArea::on_draw(const Cairo::RefPtr <Cairo::Context> &cr)
+bool LineVisualizer::on_draw(const Cairo::RefPtr <Cairo::Context> &cr)
 {
 
     Gtk::Allocation allocation = get_allocation();
@@ -43,24 +37,29 @@ bool VisualizerArea::on_draw(const Cairo::RefPtr <Cairo::Context> &cr)
     cr->restore();
 
     cr->save();
-    cr->set_line_width(0.001);
-
-    std::uniform_real_distribution<float> *dis;
-
-    std::random_device rd;
-    std::mt19937 *gen = new std::mt19937(rd());
-    dis = new std::uniform_real_distribution<float>(0.0F, 1.0F);
+    cr->set_line_width(0.004);
 
 
-    cr->set_source_rgba((*dis)(*gen), (*dis)(*gen), (*dis)(*gen), 1.0);
+//    std::uniform_real_distribution<float> *dis;
+//
+//    std::random_device rd;
+//    std::mt19937 *gen = new std::mt19937(rd());
+//    dis = new std::uniform_real_distribution<float>(0.0F, 1.0F);
+
+    cr->set_source_rgba(1.0, 1.0, 1.0, 1.0);
     cr->set_line_cap(Cairo::LINE_CAP_ROUND);
 
-    for(int i = 0; i < samples; i++){
-        double x = 0.05 + i * 0.005;
-        double y = displayBuffer[i];
+
+    this->processor->process();
+    uint16_t * displayBuffer = this->processor->average();
+
+    for(int i = 0; i < 128; i++){
+        double x = 0.01 + i * 0.0075;
+        double y = 1.0 - (double)displayBuffer[i] / 160;
         cr->move_to(x, 0.95);
         cr->line_to(x, y);
         cr->stroke();
+
     }
 
     cr->restore();
@@ -127,7 +126,7 @@ bool VisualizerArea::on_draw(const Cairo::RefPtr <Cairo::Context> &cr)
     return true;
 }
 
-bool VisualizerArea::on_timeout() {
+bool LineVisualizer::on_timeout() {
     auto win = get_window();
     if(win){
         Gdk::Rectangle r(0,0, get_allocation().get_width(), get_allocation().get_height());
