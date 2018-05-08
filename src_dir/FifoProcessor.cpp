@@ -7,7 +7,6 @@
 FifoProcessor::FifoProcessor(int sampleSize) : sampleSize(sampleSize) , averageStep(sampleSize/128){
 
     this->reader = new MPDFifoReader("/tmp/mpd.fifo", this->sampleSize);
-    //this->dataBuffer = (uint16_t *) malloc(sizeof(uint16_t) * this->sampleSize);
     this->dataBuffer = reader->getReadingBuffer();
     this->averageDataBuffer = (uint16_t *) malloc(sizeof(uint16_t) * 128);
     this->processedDataBuffer = (uint16_t *) malloc(sizeof(uint16_t) * this->sampleSize);
@@ -28,9 +27,6 @@ FifoProcessor::~FifoProcessor() {
 
 }
 
-/**
- * Processes data in dataBuffer, writes to processedDataBuffer
- */
 void FifoProcessor::process() {
     if(reader->readFifo()!=0){
         for(int i = 0; i < sampleSize; i++){

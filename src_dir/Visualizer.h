@@ -8,8 +8,6 @@
 class Visualizer : public Gtk::DrawingArea
 {
 public:
-//    virtual Visualizer(int samples) = 0;
-//    virtual ~Visualizer() = 0;
 
 protected:
     virtual bool on_draw(const Cairo::RefPtr<Cairo::Context>& cr) override = 0;
